@@ -1,6 +1,7 @@
 'use strict';
 
 var net = require('net');
+var tls = require('tls');
 var URL = require('url');
 var util = require('util');
 var utils = require('./lib/utils');
@@ -50,7 +51,10 @@ function RedisClient(options) {
         cnx_options.family = options.family === 'IPv6' ? 6 : 4;
         this.address = cnx_options.host + ':' + cnx_options.port;
     }
-    this.connection_option = cnx_options;
+    for (var tls_option in options.tls) { // jshint ignore: line
+        cnx_options[tls_option] = options.tls[tls_option];
+    }
+    this.connection_options = cnx_options;
     this.connection_id = ++connection_id;
     this.connected = false;
     this.ready = false;
@@ -91,13 +95,25 @@ function RedisClient(options) {
     this.pipeline = 0;
     this.options = options;
 
-    self.stream = net.createConnection(cnx_options);
-    self.install_stream_listeners();
+    self.stream = create_stream();
 }
 util.inherits(RedisClient, events.EventEmitter);
 
-RedisClient.prototype.install_stream_listeners = function () {
+RedisClient.prototype.create_stream = function() {
+    var stream;
     var self = this;
+
+    // On a reconnect destroy the former stream and retry
+    if (this.stream) {
+        this.stream.removeAllListeners();
+        this.stream.destroy();
+    }
+
+    if (this.options.tls) {
+	    stream = tls.connect(this.connection_options);
+    } else {
+	    stream = net.createConnection(this.connection_options);
+	}
 
     if (this.options.connect_timeout) {
         this.stream.setTimeout(this.connect_timeout, function () {
@@ -106,32 +122,39 @@ RedisClient.prototype.install_stream_listeners = function () {
         });
     }
 
-    this.stream.once('connect', function () {
+    var connect_event = this.options.tls ? "secureConnect" : "connect";
+    stream.on(connect_event, function () {
         this.removeAllListeners("timeout");
         self.on_connect();
     });
 
-    this.stream.on('data', function (buffer_from_socket) {
+    stream.on('data', function (buffer_from_socket) {
         // The buffer_from_socket.toString() has a significant impact on big chunks and therefor this should only be used if necessary
         debug('Net read ' + self.address + ' id ' + self.connection_id); // + ': ' + buffer_from_socket.toString());
         self.reply_parser.execute(buffer_from_socket);
     });
 
-    this.stream.on('error', function (err) {
+    stream.on('error', function (err) {
         self.on_error(err);
     });
 
-    this.stream.once('close', function () {
+    stream.on('clientError', function (err) {
+        self.on_error(err);
+    });
+
+    stream.once('close', function () {
         self.connection_gone('close');
     });
 
-    this.stream.once('end', function () {
+    stream.once('end', function () {
         self.connection_gone('end');
     });
 
-    this.stream.on('drain', function () {
+    stream.on('drain', function () {
         self.drain();
     });
+
+    return stream;
 };
 
 RedisClient.prototype.cork = noop;
@@ -484,10 +507,7 @@ var retry_connection = function (self) {
     self.retry_totaltime += self.retry_delay;
     self.attempts += 1;
     self.retry_delay = Math.round(self.retry_delay * self.retry_backoff);
-
-    self.stream = net.createConnection(self.connection_option);
-    self.install_stream_listeners();
-
+    self.create_stream();
     self.retry_timer = null;
 };
 
