@@ -40,13 +40,12 @@ function RedisClient(options) {
     // Copy the options so they are not mutated
     options = clone(options);
     events.EventEmitter.call(this);
-    var self = this;
     var cnx_options = {};
     if (options.path) {
         cnx_options.path = options.path;
         this.address = options.path;
     } else {
-        cnx_options.port = options.port || default_port;
+        cnx_options.port = +options.port || default_port;
         cnx_options.host = options.host || default_host;
         cnx_options.family = options.family === 'IPv6' ? 6 : 4;
         this.address = cnx_options.host + ':' + cnx_options.port;
@@ -95,12 +94,11 @@ function RedisClient(options) {
     this.pipeline = 0;
     this.options = options;
 
-    self.stream = create_stream();
+    this.create_stream();
 }
 util.inherits(RedisClient, events.EventEmitter);
 
 RedisClient.prototype.create_stream = function() {
-    var stream;
     var self = this;
 
     // On a reconnect destroy the former stream and retry
@@ -110,10 +108,10 @@ RedisClient.prototype.create_stream = function() {
     }
 
     if (this.options.tls) {
-	    stream = tls.connect(this.connection_options);
+        this.stream = tls.connect(this.connection_options);
     } else {
-	    stream = net.createConnection(this.connection_options);
-	}
+        this.stream = net.createConnection(this.connection_options);
+    }
 
     if (this.options.connect_timeout) {
         this.stream.setTimeout(this.connect_timeout, function () {
@@ -123,38 +121,36 @@ RedisClient.prototype.create_stream = function() {
     }
 
     var connect_event = this.options.tls ? "secureConnect" : "connect";
-    stream.on(connect_event, function () {
+    this.stream.on(connect_event, function () {
         this.removeAllListeners("timeout");
         self.on_connect();
     });
 
-    stream.on('data', function (buffer_from_socket) {
+    this.stream.on('data', function (buffer_from_socket) {
         // The buffer_from_socket.toString() has a significant impact on big chunks and therefor this should only be used if necessary
         debug('Net read ' + self.address + ' id ' + self.connection_id); // + ': ' + buffer_from_socket.toString());
         self.reply_parser.execute(buffer_from_socket);
     });
 
-    stream.on('error', function (err) {
+    this.stream.on('error', function (err) {
         self.on_error(err);
     });
 
-    stream.on('clientError', function (err) {
+    this.stream.on('clientError', function (err) {
         self.on_error(err);
     });
 
-    stream.once('close', function () {
+    this.stream.once('close', function () {
         self.connection_gone('close');
     });
 
-    stream.once('end', function () {
+    this.stream.once('end', function () {
         self.connection_gone('end');
     });
 
-    stream.on('drain', function () {
+    this.stream.on('drain', function () {
         self.drain();
     });
-
-    return stream;
 };
 
 RedisClient.prototype.cork = noop;
