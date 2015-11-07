@@ -1,6 +1,6 @@
 'use strict';
 
-// helper to start and stop the redis process.
+// Helper to start and stop the redis process.
 var config = require('./config');
 var fs = require('fs');
 var path = require('path');
@@ -8,8 +8,7 @@ var spawn = require('win-spawn');
 var spawnFailed = false;
 var tcpPortUsed = require('tcp-port-used');
 
-// wait for redis to be listening in
-// all three modes (ipv4, ipv6, socket).
+// Wait for redis to be listening in all three modes (ipv4, ipv6, socket).
 function waitForRedis (available, cb) {
     if (process.platform === 'win32') return cb();
 
@@ -29,21 +28,18 @@ function waitForRedis (available, cb) {
 
 module.exports = {
     start: function (done, conf) {
-        // spawn redis with our testing configuration.
+        // Spawn redis with our testing configuration.
         var confFile = conf || path.resolve(__dirname, '../conf/redis.conf');
         var rp = spawn("redis-server", [confFile], {});
 
-        // capture a failure booting redis, and give
-        // the user running the test some directions.
+        // Capture a failure booting redis, and give the user running the test some directions.
         rp.once("exit", function (code) {
             if (code !== 0) spawnFailed = true;
         });
 
-        // wait for redis to become available, by
-        // checking the port we bind on.
+        // Wait for redis to become available, by checking the port we bind on.
         waitForRedis(true, function () {
-            // return an object that can be used in
-            // an after() block to shutdown redis.
+            // Return an object that can be used in an after() block to shutdown redis.
             return done(null, {
                 spawnFailed: function () {
                     return spawnFailed;
