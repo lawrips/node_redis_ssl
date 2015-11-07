@@ -15,6 +15,10 @@ var tls_options = {
 
 var tls_port = 6380;
 
+if (process.platform === 'win32') {
+    return;
+}
+
 describe("TLS connection tests", function () {
     before(function (done) {
         helper.stopStunnel(function () {
