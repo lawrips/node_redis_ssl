@@ -104,8 +104,6 @@ function RedisClient(options) {
     else {
         self.stream = net.createConnection(cnx_options);
     }
-
-    self.stream = net.createConnection(cnx_options);
     self.install_stream_listeners();
 }
 util.inherits(RedisClient, events.EventEmitter);
