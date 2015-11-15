@@ -1,6 +1,6 @@
 {
-  "name": "@msloop/redis_ssl",
-  "version": "0.0.2",
+  "name": "redis",
+  "version": "2.3.0",
   "description": "Fork of the node-redis client library to work with ssl",
   "keywords": [
     "database",
@@ -42,7 +42,7 @@
     "url": "https://github.com/lawrips/node_redis_ssl.git"
   },
   "bugs": {
-    "url": "https://github.com/lawrips/node_redis_ssl/issues"
+    "url": "https://github.com/lawrips/node_redis_ssl.git"
   },
   "homepage": "https://github.com/NodeRedis/node_redis",
   "directories": {
