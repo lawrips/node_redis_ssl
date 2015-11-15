@@ -1,6 +1,7 @@
 'use strict';
 
 var net = require('net');
+var tls = require ('tls');
 var URL = require('url');
 var util = require('util');
 var utils = require('./lib/utils');
@@ -13,6 +14,7 @@ var parsers = [];
 var commands = require('./lib/commands');
 var connection_id = 0;
 var default_port = 6379;
+var default_ssl_port = 6380;
 var default_host = '127.0.0.1';
 var debug = function(msg) {
     if (exports.debug_mode) {
@@ -45,7 +47,13 @@ function RedisClient(options) {
         cnx_options.path = options.path;
         this.address = options.path;
     } else {
-        cnx_options.port = options.port || default_port;
+        cnx_options.tls = options.tls;
+        if (cnx_options.tls === true) {
+            cnx_options.port = options.port || default_ssl_port;
+        }
+        else {
+            cnx_options.port = options.port || default_port;
+        }
         cnx_options.host = options.host || default_host;
         cnx_options.family = options.family === 'IPv6' ? 6 : 4;
         this.address = cnx_options.host + ':' + cnx_options.port;
@@ -90,6 +98,12 @@ function RedisClient(options) {
     this.old_state = null;
     this.pipeline = 0;
     this.options = options;
+    if (cnx_options.tls === true) {
+       self.stream = tls.connect(cnx_options.port, cnx_options.host, cnx_options.tls);
+    }
+    else {
+        self.stream = net.createConnection(cnx_options);
+    }
 
     self.stream = net.createConnection(cnx_options);
     self.install_stream_listeners();
