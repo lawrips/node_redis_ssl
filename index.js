@@ -497,7 +497,13 @@ var retry_connection = function (self) {
     self.attempts += 1;
     self.retry_delay = Math.round(self.retry_delay * self.retry_backoff);
 
-    self.stream = net.createConnection(self.connection_option);
+    if (self.connection_option.tls === true) {
+        self.stream = tls.connect(self.connection_option.port, self.connection_option.host, self.connection_option.tls);
+    }
+    else {
+        self.stream = net.createConnection(self.connection_option);
+    }
+
     self.install_stream_listeners();
 
     self.retry_timer = null;
@@ -541,7 +547,7 @@ RedisClient.prototype.connection_gone = function (why) {
         this.flush_and_error(new Error('Redis connection gone from ' + why + ' event.'));
         return;
     }
-
+    
     if (this.max_attempts !== 0 && this.attempts >= this.max_attempts || this.retry_totaltime >= this.connect_timeout) {
         var message = this.retry_totaltime >= this.connect_timeout ?
             'connection timeout exceeded.' :
