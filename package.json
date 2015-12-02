@@ -1,7 +1,7 @@
 {
   "name": "redis",
   "version": "2.3.0",
-  "description": "Redis client library",
+  "description": "Fork of the node-redis client library to work with ssl",
   "keywords": [
     "database",
     "redis",
@@ -39,10 +39,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/NodeRedis/node_redis.git"
+    "url": "https://github.com/lawrips/node_redis_ssl.git"
   },
   "bugs": {
-    "url": "https://github.com/NodeRedis/node_redis/issues"
+    "url": "https://github.com/lawrips/node_redis_ssl.git"
   },
   "homepage": "https://github.com/NodeRedis/node_redis",
   "directories": {
